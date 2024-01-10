@@ -26,6 +26,7 @@ quantization_config = BitsAndBytesConfig(
 )
 
 DEFAULT_HUGGINGFACE_MODEL = "deepseek-ai/deepseek-llm-7b-chat"
+
 class DeepSeekLLM(HuggingFaceLLM):
     def messages2prompt(messages: list) -> str:
         prompt = ""
@@ -97,7 +98,7 @@ class DeepSeekLLM(HuggingFaceLLM):
         input_tensor=tokenizer.encode(prompt, return_tensors="pt")
         
         streamer = TextIteratorStreamer(tokenizer,skip_prompt=True)
-        generation_kwargs = dict(inputs=input_tensor.to(model.device), streamer=streamer, max_new_tokens=1024)
+        generation_kwargs = dict(inputs=input_tensor.to(model.device), streamer=streamer, max_new_tokens=self.max_new_tokens)
         thread = Thread(target=model.generate, kwargs=generation_kwargs)
         thread.start()
 
