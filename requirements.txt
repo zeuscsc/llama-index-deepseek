@@ -1,0 +1,6 @@
+transformers==4.36.2
+llama-index==0.9.13 
+accelerate==0.25.0
+pypdf==3.17.4
+pydantic==1.10.11 
+bitsandbytes==0.39
