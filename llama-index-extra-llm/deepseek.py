@@ -2,25 +2,21 @@ import torch
 from transformers import BitsAndBytesConfig
 from llama_index.prompts import PromptTemplate
 from llama_index.llms import HuggingFaceLLM
-from llama_index import VectorStoreIndex, SimpleDirectoryReader
-from llama_index import ServiceContext
 
-from typing import Optional, List, Mapping, Any, Union, Callable
+from typing import Optional, List, Any, Union, Callable
 
-from llama_index import ServiceContext, SimpleDirectoryReader, SummaryIndex
 from llama_index.callbacks import CallbackManager
 from llama_index.llms import (
-    CustomLLM,
     CompletionResponse,
     CompletionResponseGen,
-    LLMMetadata,
 )
 from llama_index.llms.base import llm_completion_callback
-from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig,TextIteratorStreamer
 from llama_index.constants import (
     DEFAULT_CONTEXT_WINDOW,
     DEFAULT_NUM_OUTPUTS,
 )
+from threading import Thread
 
 quantization_config = BitsAndBytesConfig(
     load_in_4bit=True,
@@ -31,7 +27,14 @@ quantization_config = BitsAndBytesConfig(
 
 DEFAULT_HUGGINGFACE_MODEL = "deepseek-ai/deepseek-llm-7b-chat"
 class DeepSeekLLM(HuggingFaceLLM):
-    messages: list[str]=[]
+    def messages2prompt(messages: list) -> str:
+        prompt = ""
+        for message in messages:
+            if message["role"] == "user":
+                prompt += f"""User: {message["content"]}\nAssistant: """
+            else:
+                prompt += f"""Assistant: {messages[1]['content']}<｜end▁of▁sentence｜>"""
+        return prompt
 
     def __init__(
         self,
@@ -76,17 +79,14 @@ class DeepSeekLLM(HuggingFaceLLM):
         model.generation_config = GenerationConfig.from_pretrained(model_name)
         model.generation_config.pad_token_id = model.generation_config.eos_token_id
 
-    def reset_conversation(self):
-        self.messages=[]
-
     @llm_completion_callback()
     def complete(self, prompt: str, **kwargs: Any) -> CompletionResponse:
         model:AutoModelForCausalLM=self._model
         tokenizer:AutoTokenizer=self._tokenizer
-        self.messages.append({"role": "user", "content": prompt})
-        input_tensor = tokenizer.apply_chat_template(self.messages, add_generation_prompt=True, return_tensors="pt")
-        outputs = model.generate(input_tensor.to(model.device), max_new_tokens=1024)
-        return CompletionResponse(text=tokenizer.decode(outputs[0][input_tensor.shape[1]:], skip_special_tokens=True))
+        input_tensor=tokenizer.encode(prompt, return_tensors="pt")
+        outputs = model.generate(input_tensor.to(model.device), max_new_tokens=self.max_new_tokens)
+        response = tokenizer.decode(outputs[0][input_tensor.shape[1]:], skip_special_tokens=True)
+        return CompletionResponse(text=response)
 
     @llm_completion_callback()
     def stream_complete(
@@ -94,10 +94,18 @@ class DeepSeekLLM(HuggingFaceLLM):
     ) -> CompletionResponseGen:
         model:AutoModelForCausalLM=self._model
         tokenizer:AutoTokenizer=self._tokenizer
-        self.messages.append({"role": "user", "content": prompt})
-        input_tensor = tokenizer.apply_chat_template(self.messages, add_generation_prompt=True, return_tensors="pt")
-        outputs = model.generate(input_tensor.to(model.device), max_new_tokens=1024)
-        response = ""
-        for token in outputs:
-            response += token
-            yield CompletionResponse(text=response, delta=token)
+        input_tensor=tokenizer.encode(prompt, return_tensors="pt")
+        
+        streamer = TextIteratorStreamer(tokenizer,skip_prompt=True)
+        generation_kwargs = dict(inputs=input_tensor.to(model.device), streamer=streamer, max_new_tokens=1024)
+        thread = Thread(target=model.generate, kwargs=generation_kwargs)
+        thread.start()
+
+        def gen() -> CompletionResponseGen:
+            text = ""
+            for x in streamer:
+                text += x
+                yield CompletionResponse(text=text, delta=x)
+
+        return gen()
+
