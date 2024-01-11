@@ -7,7 +7,7 @@ from setuptools import find_packages, setup, Command
 
 NAME = 'llama_index_extra_llm'
 DESCRIPTION = 'Just a simple extension for LlamaIndex for better apply some llm such as DeepSeek.'
-URL = 'https://github.com/zeuscsc/llama-index-extra-llm.git'
+URL = 'https://github.com/zeuscsc/llama_index_extra_llm.git'
 EMAIL = 'zeuscsc@gmail.com'
 AUTHOR = 'Zeus Chiu'
 REQUIRES_PYTHON = '>=3.9.0'
