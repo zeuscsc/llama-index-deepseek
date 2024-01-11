@@ -5,7 +5,7 @@ from shutil import rmtree
 
 from setuptools import find_packages, setup, Command
 
-NAME = 'llama-index-extra-llm'
+NAME = 'llama_index_extra_llm'
 DESCRIPTION = 'Just a simple extension for LlamaIndex for better apply some llm such as DeepSeek.'
 URL = 'https://github.com/zeuscsc/llama-index-extra-llm.git'
 EMAIL = 'zeuscsc@gmail.com'
