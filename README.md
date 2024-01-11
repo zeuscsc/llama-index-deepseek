@@ -29,4 +29,11 @@ llm = DeepSeekLLM(
     generate_kwargs={"temperature": 0.7, "top_k": 50, "top_p": 0.95},
     device_map="auto",
 )
+service_context = ServiceContext.from_defaults(llm=llm, embed_model="local:BAAI/bge-small-en-v1.5")
+documents = SimpleDirectoryReader("data").load_data()
+index = VectorStoreIndex.from_documents(documents, service_context=service_context)
+query_engine = index.as_query_engine(streaming=True, similarity_top_k=1)
+prompt=DeepSeekLLM.messages2prompt(messages=[{"role": "user", "content": "Hello"}])
+streaming_response=query_engine.query(prompt)
+streaming_response.print_response_stream()
 ```
