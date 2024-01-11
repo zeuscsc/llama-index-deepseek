@@ -11,6 +11,7 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvi
 ```
 
 ## Quick Usage
+Initialize
 ```python
 from llama_index import VectorStoreIndex, SimpleDirectoryReader
 from llama_index import ServiceContext
@@ -26,8 +27,22 @@ llm = DeepSeekLLM(
 service_context = ServiceContext.from_defaults(llm=llm)
 documents = SimpleDirectoryReader("data").load_data()
 index = VectorStoreIndex.from_documents(documents, service_context=service_context)
+query_engine = index.as_query_engine()
+```
+
+Predict
+```python
+prompt=DeepSeekLLM.messages2prompt(messages=[{"role": "user", "content": "Hello"}])
+assistant=query_engine.query(prompt)
+messages.append({"role": "assistant", "content": assistant})
+```
+
+For stream output
+```python
 query_engine = index.as_query_engine(streaming=True, similarity_top_k=1)
 prompt=DeepSeekLLM.messages2prompt(messages=[{"role": "user", "content": "Hello"}])
 streaming_response=query_engine.query(prompt)
 streaming_response.print_response_stream()
+assistant=handle_output(generator)
+messages.append({"role": "assistant", "content": assistant})
 ```
