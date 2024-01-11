@@ -11,25 +11,19 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvi
 ```
 
 ## Quick Usage
-Quantization is optional
 ```python
+from llama_index import VectorStoreIndex, SimpleDirectoryReader
+from llama_index import ServiceContext
 from llama_index_extra_llm.deepseek import DeepSeekLLM
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_use_double_quant=True,
-)
 llm = DeepSeekLLM(
     model_name="deepseek-ai/deepseek-llm-7b-chat",
     tokenizer_name="deepseek-ai/deepseek-llm-7b-chat",
     context_window=3900,
     max_new_tokens=1024,
-    model_kwargs={"quantization_config": quantization_config},
     generate_kwargs={"temperature": 0.7, "top_k": 50, "top_p": 0.95},
     device_map="auto",
 )
-service_context = ServiceContext.from_defaults(llm=llm, embed_model="local:BAAI/bge-small-en-v1.5")
+service_context = ServiceContext.from_defaults(llm=llm)
 documents = SimpleDirectoryReader("data").load_data()
 index = VectorStoreIndex.from_documents(documents, service_context=service_context)
 query_engine = index.as_query_engine(streaming=True, similarity_top_k=1)
