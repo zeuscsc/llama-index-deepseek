@@ -13,6 +13,7 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvi
 ## Quick Usage
 Quantization is optional
 ```python
+from llama_index_extra_llm.deepseek import DeepSeekLLM
 quantization_config = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_compute_dtype=torch.float16,
