@@ -34,7 +34,7 @@ class DeepSeekLLM(HuggingFaceLLM):
             if message["role"] == "user":
                 prompt += f"""User: {message["content"]}\nAssistant: """
             else:
-                prompt += f"""Assistant: {messages[1]['content']}"""
+                prompt += f"""Assistant: {message['content']}"""
         return prompt
 
     def __init__(
